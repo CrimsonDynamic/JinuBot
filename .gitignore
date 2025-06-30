@@ -1,0 +1,4 @@
+.env
+venv
+server_data.json
+roles.json
