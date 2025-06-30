@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 from discord.app_commands import Choice
 import aiohttp
+import random
 
 class FunCommands(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -17,7 +18,12 @@ class FunCommands(commands.Cog):
     ])
     async def truth(self, interaction: discord.Interaction, rating: Choice[str] = None):
         await interaction.response.defer()
-        rating_value = rating.value if rating else "pg"
+        if rating:
+            rating_value = rating.value
+        else:
+            # If no rating is chosen, pick one randomly
+            rating_value = random.choice(["pg", "pg13", "r"])
+
         api_url = f"https://api.truthordarebot.xyz/v1/truth?rating={rating_value}"
         question_text = "Sorry, I couldn't fetch a question right now. Please try again later."
         
@@ -51,7 +57,11 @@ class FunCommands(commands.Cog):
     ])
     async def dare(self, interaction: discord.Interaction, rating: Choice[str] = None):
         await interaction.response.defer()
-        rating_value = rating.value if rating else "pg"
+        if rating:
+            rating_value = rating.value
+        else:
+            # If no rating is chosen, pick one randomly
+            rating_value = random.choice(["pg", "pg13", "r"])
         # The only change is using the 'dare' endpoint instead of 'truth'
         api_url = f"https://api.truthordarebot.xyz/v1/dare?rating={rating_value}"
         dare_text = "Sorry, I couldn't fetch a dare right now. Please try again later."
