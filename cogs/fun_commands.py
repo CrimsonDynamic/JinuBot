@@ -40,7 +40,7 @@ class FunCommands(commands.Cog):
         embed_color = color_map.get(rating_value, discord.Color.purple())
 
         embed = discord.Embed(
-            title=f"🤔 Truth ({rating_value.upper()})",
+            title=f" Truth ({rating_value.upper()})",
             description=f"## {question_text}",
             color=embed_color
         )

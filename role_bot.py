@@ -3,6 +3,7 @@ import os
 from discord.ext import commands
 from dotenv import load_dotenv
 from utils.data_manager import load_data
+from utils.database import initialize_database
 
 # Load environment variables
 load_dotenv()
@@ -34,6 +35,7 @@ class MyBot(commands.Bot):
     async def on_ready(self):
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         load_data()
+        initialize_database()
         print("Data loaded.")
 
 # Run the bot

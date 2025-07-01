@@ -4,30 +4,7 @@ from discord import app_commands
 from discord.ui import Select, View
 from datetime import datetime
 from utils.data_manager import get_guild_data
-
-# --- NEW HELPER FUNCTION FOR LOGGING ---
-async def send_log_message(interaction: discord.Interaction, action_text: str, color: discord.Color):
-    """A dedicated function to handle sending log messages."""
-    guild_data = get_guild_data(interaction.guild_id)
-    log_channel_id = guild_data["settings"].get("log_channel")
-
-    if not log_channel_id:
-        return # Silently do nothing if no log channel is set
-
-    log_channel = interaction.client.get_channel(log_channel_id)
-    if log_channel:
-        try:
-            embed = discord.Embed(
-                description=action_text,
-                color=color,
-                timestamp=datetime.now()
-            )
-            embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-            await log_channel.send(embed=embed)
-        except discord.Forbidden:
-            print(f"ERROR: Bot is missing permissions to send messages in log channel {log_channel.id} for guild {interaction.guild.id}")
-        except Exception as e:
-            print(f"An unexpected error occurred during logging: {e}")
+from utils.log_manager import send_log # <-- Import the new log function
 
 # --- UI Select Menus ---
 
@@ -60,18 +37,22 @@ class RoleSelectMenu(Select):
             await interaction.response.send_message("That role no longer exists.", ephemeral=True)
             return
 
-        # Refactored logging logic
+        # This logic is now updated to use the centralized logger
         try:
             if role in member.roles:
                 await member.remove_roles(role)
                 await interaction.response.send_message(f"Role **{role.name}** has been removed.", ephemeral=True)
-                # Call the new helper function
-                await send_log_message(interaction, f"**{member.mention} removed the role {role.mention}**", discord.Color.orange())
+                # Create and send the log embed
+                log_embed = discord.Embed(description=f"**{member.mention} removed the role {role.mention}**", color=discord.Color.orange(), timestamp=datetime.now())
+                log_embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
+                await send_log(interaction, log_embed)
             else:
                 await member.add_roles(role)
                 await interaction.response.send_message(f"Role **{role.name}** has been granted.", ephemeral=True)
-                # Call the new helper function
-                await send_log_message(interaction, f"**{member.mention} received the role {role.mention}**", discord.Color.green())
+                # Create and send the log embed
+                log_embed = discord.Embed(description=f"**{member.mention} received the role {role.mention}**", color=discord.Color.green(), timestamp=datetime.now())
+                log_embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
+                await send_log(interaction, log_embed)
         except discord.Forbidden:
             await interaction.response.send_message("I do not have permissions to manage this role.", ephemeral=True)
         
