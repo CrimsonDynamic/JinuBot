@@ -18,6 +18,7 @@ def save_data():
         json.dump(SERVER_DATA, f, indent=4)
 
 def get_guild_data(guild_id: int) -> dict:
+    """Retrieve or initialize data for a specific guild."""
     guild_id_str = str(guild_id)
     if guild_id_str not in SERVER_DATA:
         SERVER_DATA[guild_id_str] = {

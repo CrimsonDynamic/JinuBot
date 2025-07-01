@@ -8,6 +8,7 @@ from utils.log_manager import send_log # <-- Import the new log function
 
 # --- UI Select Menus ---
 
+
 class RoleSelectMenu(Select):
     def __init__(self, category: str, interaction: discord.Interaction):
         guild = interaction.guild
@@ -19,44 +20,71 @@ class RoleSelectMenu(Select):
         for role_id in role_ids:
             role = guild.get_role(int(role_id))
             if role:
-                is_selected = role in user_roles
                 options.append(discord.SelectOption(
                     label=role.name,
                     value=str(role.id),
-                    description=f"Click to {'remove' if is_selected else 'get'} this role."
+                    description="Select to add or remove this role."
                 ))
         
-        super().__init__(placeholder=f"Select a role from '{category}'...", options=options, disabled=not options)
+        super().__init__(
+            placeholder=f"Select one or more roles from '{category}'...",
+            min_values=1,
+            max_values=len(options) if options else 1,
+            options=options,
+            disabled=not options
+        )
 
     async def callback(self, interaction: discord.Interaction):
         member = interaction.user
-        role_id = int(self.values[0])
-        role = interaction.guild.get_role(role_id)
+        added_roles = []
+        removed_roles = []
 
-        if not role:
-            await interaction.response.send_message("That role no longer exists.", ephemeral=True)
-            return
+        # Loop through each selected role and sort it into an added/removed list
+        for role_id in self.values:
+            role = interaction.guild.get_role(int(role_id))
+            if not role:
+                continue
 
-        # This logic is now updated to use the centralized logger
-        try:
             if role in member.roles:
                 await member.remove_roles(role)
-                await interaction.response.send_message(f"Role **{role.name}** has been removed.", ephemeral=True)
-                # Create and send the log embed
-                log_embed = discord.Embed(description=f"**{member.mention} removed the role {role.mention}**", color=discord.Color.orange(), timestamp=datetime.now())
-                log_embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
-                await send_log(interaction, log_embed)
+                removed_roles.append(role)
             else:
                 await member.add_roles(role)
-                await interaction.response.send_message(f"Role **{role.name}** has been granted.", ephemeral=True)
-                # Create and send the log embed
-                log_embed = discord.Embed(description=f"**{member.mention} received the role {role.mention}**", color=discord.Color.green(), timestamp=datetime.now())
-                log_embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
-                await send_log(interaction, log_embed)
-        except discord.Forbidden:
-            await interaction.response.send_message("I do not have permissions to manage this role.", ephemeral=True)
+                added_roles.append(role)
         
+        # --- THIS IS THE CORRECTED LOGIC ---
+
+        # 1. Create the confirmation message for the user
+        response_lines = []
+        if added_roles:
+            response_lines.append(f"**Added:** {', '.join(r.mention for r in added_roles)}")
+        if removed_roles:
+            response_lines.append(f"**Removed:** {', '.join(r.mention for r in removed_roles)}")
+
+        if not response_lines:
+            await interaction.response.send_message("No changes were made.", ephemeral=True)
+        else:
+            await interaction.response.send_message("\n".join(response_lines), ephemeral=True)
+
+        # 2. Create and send the log embed if any changes were made
+        if added_roles or removed_roles:
+            log_embed = discord.Embed(
+                title="Role Update Log",
+                color=discord.Color.blue(),
+                timestamp=datetime.now()
+            )
+            log_embed.set_author(name=member.display_name, icon_url=member.display_avatar.url)
+            
+            if added_roles:
+                log_embed.add_field(name="Roles Added", value=', '.join(r.mention for r in added_roles), inline=False)
+            if removed_roles:
+                log_embed.add_field(name="Roles Removed", value=', '.join(r.mention for r in removed_roles), inline=False)
+
+            await send_log(interaction, log_embed)
+        
+        # Stop the view since the action is complete
         self.view.stop()
+
 
 class CategorySelectMenu(Select):
     def __init__(self, interaction: discord.Interaction):
@@ -94,7 +122,8 @@ class UserCommands(commands.Cog):
             await interaction.response.send_message("No role categories have been configured for this server.", ephemeral=True)
             return
         
-        view = View(timeout=180.0)
+        # Create the initial view with the category selector
+        view = View(timeout=180.0) 
         view.add_item(CategorySelectMenu(interaction=interaction))
         
         await interaction.response.send_message(
