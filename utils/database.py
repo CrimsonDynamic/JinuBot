@@ -13,13 +13,25 @@ def initialize_database():
     conn = get_db_connection()
     cursor = conn.cursor()
     
+    # --- UPDATED WARNINGS TABLE ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS warnings (
-            warning_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            warning_id TEXT PRIMARY KEY, -- Changed from INTEGER to TEXT
             guild_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             moderator_id INTEGER NOT NULL,
             reason TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+     # --- UPDATED CONFESSIONS TABLE ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS confessions (
+            confession_id TEXT PRIMARY KEY, -- Changed from INTEGER to TEXT
+            guild_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
